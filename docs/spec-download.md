@@ -56,7 +56,7 @@
    - URL: `https://cyberjapandata.gsi.go.jp/xyz/dem5a/{z}/{x}/{y}.txt`
    - zoom level: 14
    - キャッシュ: `cache/dem/` に保存
-   - アクセス間隔: 50ms以上
+   - アクセス間隔: 10ms以上
 2. DEM NoData（水面・欠損）の頂点は、RiverNodeの端点標高で線形補間
 
 ### Step 5: 海岸線データのダウンロード
@@ -158,7 +158,7 @@ cache/
 |-----|------|
 | Wikidata SPARQL | 1秒以上 |
 | 国土数値情報 (W05/C23) | 1秒以上 |
-| 国土地理院 DEM5A | 50ms以上 |
+| 国土地理院 DEM5A | 10ms以上 |
 
 ---
 

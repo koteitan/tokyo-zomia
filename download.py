@@ -126,7 +126,7 @@ def load_dem_tile(xtile, ytile):
                 text = resp.read().decode("utf-8")
             with open(cache_path, "w") as f:
                 f.write(text)
-            time.sleep(0.05)
+            time.sleep(0.01)
         except Exception:
             tile_cache[key] = None
             return None
