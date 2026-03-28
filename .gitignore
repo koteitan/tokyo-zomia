@@ -1,0 +1,7 @@
+cache/
+data/
+logs/
+__pycache__/
+commit-msg.txt
+*.zip
+.live-server-*.log
