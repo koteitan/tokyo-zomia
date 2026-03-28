@@ -47,7 +47,10 @@ agent team によって分担する。
 - planner が下記を満たすプランを立てる。
   - planner が仕様を作成する。
   - tester がテスト仕様を作成する。
+  - planner が確認、必要なら修正指示。
+  - user が確認。
   - programmer が実装する。
+  - programmer がホワイトテストを設計して、テスト実施する。合格すれば次に進む。
   - tester がテスト実施し、planner に結果を報告する。
   - 最初に戻る
 

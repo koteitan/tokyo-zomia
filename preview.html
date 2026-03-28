@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>河川水系 3D Preview</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #111; color: #eee; font-family: monospace; overflow: hidden; }
+  canvas { display: block; }
+  #info {
+    position: absolute; top: 10px; left: 10px;
+    background: rgba(0,0,0,0.7); padding: 10px; border-radius: 4px;
+    font-size: 13px; line-height: 1.6;
+  }
+  #info kbd { background: #333; padding: 1px 5px; border-radius: 3px; }
+  #tooltip {
+    position: absolute; display: none;
+    background: rgba(0,0,0,0.85); padding: 6px 10px; border-radius: 4px;
+    font-size: 12px; pointer-events: none;
+  }
+  #controls {
+    position: absolute; top: 10px; right: 10px;
+    background: rgba(0,0,0,0.7); padding: 10px; border-radius: 4px;
+    font-size: 13px;
+  }
+  #controls label { display: block; margin: 4px 0; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="info">
+  河川水系 3D Preview<br>
+  <kbd>ドラッグ</kbd> 回転 <kbd>ホイール</kbd> ズーム <kbd>右ドラッグ</kbd> パン
+</div>
+<div id="controls">
+  <label>標高スケール: <input type="range" id="elevScale" min="1" max="50" value="10"> <span id="elevScaleVal">10</span>x</label>
+  <label><input type="checkbox" id="showNodes" checked> 端点表示</label>
+  <label><input type="checkbox" id="showCoast" checked> 海岸線表示</label>
+</div>
+<div id="tooltip"></div>
+<script src="preview.js"></script>
+</body>
+</html>
