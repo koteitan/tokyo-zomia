@@ -4,6 +4,7 @@
 加工して data/ にGeoJSONファイルとして出力する。
 """
 
+import gzip
 import json
 import math
 import os
@@ -662,25 +663,33 @@ def step6_output(features_3d, coast_features):
         "features": river_features
     }
 
-    rivers_path = os.path.join(DATA_DIR, "rivers.geojson")
-    with open(rivers_path, "w", encoding="utf-8") as f:
-        json.dump(rivers_geojson, f, ensure_ascii=False)
+    rivers_path = os.path.join(DATA_DIR, "rivers.geojson.gz")
+    rivers_json = json.dumps(rivers_geojson, ensure_ascii=False).encode("utf-8")
+    with gzip.open(rivers_path, "wb") as f:
+        f.write(rivers_json)
 
     total_vertices = sum(len(f["geometry"]["coordinates"]) for f in river_features)
-    print(f"  data/rivers.geojson: {len(river_features)} features, {total_vertices} vertices", flush=True)
+    raw_size = len(rivers_json)
+    gz_size = os.path.getsize(rivers_path)
+    print(f"  data/rivers.geojson.gz: {len(river_features)} features, {total_vertices} vertices", flush=True)
+    print(f"    raw={raw_size} bytes, gz={gz_size} bytes ({gz_size*100//raw_size}%)", flush=True)
 
-    # coastline.geojson
+    # coastline.geojson.gz
     coastline_geojson = {
         "type": "FeatureCollection",
         "features": coast_features
     }
 
-    coast_path = os.path.join(DATA_DIR, "coastline.geojson")
-    with open(coast_path, "w", encoding="utf-8") as f:
-        json.dump(coastline_geojson, f, ensure_ascii=False)
+    coast_path = os.path.join(DATA_DIR, "coastline.geojson.gz")
+    coast_json = json.dumps(coastline_geojson, ensure_ascii=False).encode("utf-8")
+    with gzip.open(coast_path, "wb") as f:
+        f.write(coast_json)
 
     coast_vertices = sum(len(f["geometry"]["coordinates"]) for f in coast_features)
-    print(f"  data/coastline.geojson: {len(coast_features)} features, {coast_vertices} vertices", flush=True)
+    raw_size = len(coast_json)
+    gz_size = os.path.getsize(coast_path)
+    print(f"  data/coastline.geojson.gz: {len(coast_features)} features, {coast_vertices} vertices", flush=True)
+    print(f"    raw={raw_size} bytes, gz={gz_size} bytes ({gz_size*100//raw_size}%)", flush=True)
 
 
 # --- Main ---

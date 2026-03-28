@@ -1,11 +1,28 @@
 // 河川水系 + 海岸線 3D Preview
 (async function () {
-  const [segResp, coastResp] = await Promise.all([
-    fetch("data/rivers.geojson"),
-    fetch("data/coastline.geojson"),
+  /**
+   * gzip圧縮されたJSONファイルをfetchし、DecompressionStreamで解凍してパースする。
+   */
+  async function fetchGzJson(url) {
+    const resp = await fetch(url);
+    const ds = new DecompressionStream("gzip");
+    const decompressedStream = resp.body.pipeThrough(ds);
+    const reader = decompressedStream.getReader();
+    const chunks = [];
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+    }
+    const blob = new Blob(chunks);
+    const text = await blob.text();
+    return JSON.parse(text);
+  }
+
+  const [riversGJ, coastGJ] = await Promise.all([
+    fetchGzJson("data/rivers.geojson.gz"),
+    fetchGzJson("data/coastline.geojson.gz"),
   ]);
-  const riversGJ = await segResp.json();
-  const coastGJ = await coastResp.json();
 
   // GeoJSON → 内部形式に変換
   const segments = riversGJ.features.map((f) => ({

@@ -1,22 +1,24 @@
 # プレビューアプリ 詳細仕様書
 
 ## 概要
-`preview.html` + `preview.js` で、`data/rivers.geojson` と `data/coastline.geojson` を
+`index.html` + `index.js` + `style.css` で、`data/rivers.geojson.gz` と `data/coastline.geojson.gz` を
 3D表示するWebアプリ。
 
 ## ファイル構成
-- `preview.html` — HTML/CSS/UI
-- `preview.js` — WebGL描画ロジック
+- `index.html` — HTML/UI
+- `style.css` — スタイルシート
+- `index.js` — WebGL描画ロジック + gzip解凍
 
 ## 依存
-- 外部ライブラリなし（素のWebGLのみ）
-- データは `data/rivers.geojson`, `data/coastline.geojson` をfetchで読み込む
+- 外部ライブラリなし（素のWebGL + DecompressionStream API のみ）
+- データは `data/rivers.geojson.gz`, `data/coastline.geojson.gz` をfetchし、DecompressionStream("gzip")で解凍して読み込む
 
 ---
 
 ## データ読み込み
-- `data/rivers.geojson` — GeoJSON FeatureCollection、各FeatureはLineStringで3D座標 `[lon, lat, elev]`
-- `data/coastline.geojson` — GeoJSON FeatureCollection、各FeatureはLineStringで2D座標 `[lon, lat]`
+- `data/rivers.geojson.gz` — gzip圧縮されたGeoJSON FeatureCollection、各FeatureはLineStringで3D座標 `[lon, lat, elev]`
+- `data/coastline.geojson.gz` — gzip圧縮されたGeoJSON FeatureCollection、各FeatureはLineStringで2D座標 `[lon, lat]`
+- DecompressionStream APIを使用してブラウザ側でストリーム解凍（外部ライブラリ不要）
 
 ---
 
