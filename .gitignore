@@ -1,5 +1,5 @@
 cache/
-data/
+data/*.geojson
 logs/
 __pycache__/
 commit-msg.txt

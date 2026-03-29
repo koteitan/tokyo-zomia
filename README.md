@@ -49,6 +49,51 @@ python3 download.py
 
 キャッシュは `cache/` に保存され、2回目以降の実行は高速です。
 
+#### download.py フローチャート
+
+```mermaid
+flowchart TD
+    Start([download.py 実行]) --> S1
+
+    S1["Step 1: 対象水系の特定"]
+    S1 --> S1a["Wikidata SPARQL で\n相模湾・東京湾に流入する\n河川名を取得"]
+    S1a --> S2
+
+    S2["Step 2: W05 河川データのダウンロード"]
+    S2 --> S2a["対象8都県の\nStream.shp + RiverNode.shp\nをダウンロード"]
+    S2a --> S2b["河川名で水系域コードを照合"]
+    S2b --> S3
+
+    S3["Step 3: 対象河川のフィルタリング"]
+    S3 --> S3a["bbox内の河口ノードを特定"]
+    S3a --> S3b["河口から上流へグラフ探索"]
+    S3b --> S3c{"源流の標高\n>= 300m?"}
+    S3c -- Yes --> S3d["経路上の区間を保持"]
+    S3c -- No --> S3e["区間を除外"]
+    S3d --> S4
+    S3e --> S4
+
+    S4["Step 4: DEM 標高の付与"]
+    S4 --> S4a["各頂点の座標から\nDEM5A タイルを取得\n(zoom=14)"]
+    S4a --> S4b{"DEM値が\n有効?"}
+    S4b -- Yes --> S4c["標高をそのまま使用"]
+    S4b -- "NoData" --> S4d["RiverNode端点標高で\n線形補間"]
+    S4c --> S5
+    S4d --> S5
+
+    S5["Step 5: 海岸線データのダウンロード"]
+    S5 --> S5a["神奈川・東京・千葉の\nC23 Shapefile をダウンロード"]
+    S5a --> S5b["bbox内の区間を抽出\n島嶼部を除外"]
+    S5b --> S5c["河口座標との近接判定で\nis_river_mouth を設定"]
+    S5c --> S6
+
+    S6["Step 6: GeoJSON 出力"]
+    S6 --> S6a["data/rivers.geojson.gz\n3D河川ポリライン"]
+    S6 --> S6b["data/coastline.geojson.gz\n2D海岸線ポリライン"]
+    S6a --> End
+    S6b --> End([完了])
+```
+
 ### ファイル構成
 
 ```

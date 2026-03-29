@@ -593,6 +593,14 @@ def step5_download_coastline(river_mouths_coords=None):
             filtered.append((d, shape))
 
     # 河口判定: 河川の河口座標に近い海岸線区間
+    # 空間グリッドを構築 (0.01度≒1km セル) して O(1) ルックアップ
+    GRID_RES = 0.01
+    THRESHOLD = 0.005  # 約500m
+    mouth_grid = defaultdict(list)
+    for mlat, mlon in river_mouths_coords:
+        cell = (round(mlat / GRID_RES), round(mlon / GRID_RES))
+        mouth_grid[cell].append((mlat, mlon))
+
     coast_features_out = []
     for d, shape in filtered:
         # 行政区域コード
@@ -602,15 +610,23 @@ def step5_download_coastline(river_mouths_coords=None):
                 gyosei_code = str(d[key])
                 break
 
-        # 河口判定: 河川の河口座標と海岸線の端点が近いかチェック
+        # 河口判定: グリッドで近傍セルのみ検索
         is_river_mouth = False
         if river_mouths_coords:
             for pt in shape.points:
                 lon, lat = pt[0], pt[1]
-                for mlat, mlon in river_mouths_coords:
-                    dist = math.sqrt((lat - mlat)**2 + (lon - mlon)**2)
-                    if dist < 0.005:  # 約500m
-                        is_river_mouth = True
+                cell_y = round(lat / GRID_RES)
+                cell_x = round(lon / GRID_RES)
+                for dy in (-1, 0, 1):
+                    for dx in (-1, 0, 1):
+                        for mlat, mlon in mouth_grid.get((cell_y + dy, cell_x + dx), ()):
+                            dist = math.sqrt((lat - mlat)**2 + (lon - mlon)**2)
+                            if dist < THRESHOLD:
+                                is_river_mouth = True
+                                break
+                        if is_river_mouth:
+                            break
+                    if is_river_mouth:
                         break
                 if is_river_mouth:
                     break
