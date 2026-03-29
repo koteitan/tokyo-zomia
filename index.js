@@ -84,7 +84,7 @@
   const lonCenter = (lonMin + lonMax) / 2;
   const latCenter = (latMin + latMax) / 2;
 
-  let elevScale = 10;
+  let elevScale = 15;
 
   function normalize(lon, lat, elev) {
     const x = ((lon - lonCenter) * mPerDegLon) / rangeMax;
@@ -299,7 +299,7 @@
   }
 
   // --- カメラ ---
-  let rotX = -Math.PI / 2, rotY = 0, zoom = 2.5, panX = 0, panY = 0;
+  let rotX = Math.PI / 2, rotY = 0, zoom = 2.5, panX = 0, panY = 0;
 
   function getMVP() {
     const aspect = canvas.width / canvas.height;
@@ -431,8 +431,6 @@
   // --- UI ---
   const elevSlider = document.getElementById("elevScale");
   const elevVal = document.getElementById("elevScaleVal");
-  const showNodesCheck = document.getElementById("showNodes");
-  const showCoastCheck = document.getElementById("showCoast");
 
   elevSlider.addEventListener("input", () => {
     elevScale = Number(elevSlider.value);
@@ -490,13 +488,11 @@
     gl.drawArrays(gl.LINES, 0, grid.count);
 
     // 海岸線
-    if (showCoastCheck.checked) {
-      gl.bindBuffer(gl.ARRAY_BUFFER, coastBuf);
-      gl.vertexAttribPointer(aPos, 3, gl.FLOAT, false, 0, 0);
-      gl.bindBuffer(gl.ARRAY_BUFFER, coastColorBuf);
-      gl.vertexAttribPointer(aColor, 3, gl.FLOAT, false, 0, 0);
-      gl.drawArrays(gl.LINES, 0, coastVertCount);
-    }
+    gl.bindBuffer(gl.ARRAY_BUFFER, coastBuf);
+    gl.vertexAttribPointer(aPos, 3, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, coastColorBuf);
+    gl.vertexAttribPointer(aColor, 3, gl.FLOAT, false, 0, 0);
+    gl.drawArrays(gl.LINES, 0, coastVertCount);
 
     // 河川ライン
     gl.bindBuffer(gl.ARRAY_BUFFER, lineBuf);
@@ -505,15 +501,6 @@
     gl.vertexAttribPointer(aColor, 3, gl.FLOAT, false, 0, 0);
     gl.drawArrays(gl.LINES, 0, lineVertCount);
 
-    // 端点
-    if (showNodesCheck.checked) {
-      gl.uniform1f(uPointSize, 4.0);
-      gl.bindBuffer(gl.ARRAY_BUFFER, nodeBuf);
-      gl.vertexAttribPointer(aPos, 3, gl.FLOAT, false, 0, 0);
-      gl.bindBuffer(gl.ARRAY_BUFFER, nodeColorBuf);
-      gl.vertexAttribPointer(aColor, 3, gl.FLOAT, false, 0, 0);
-      gl.drawArrays(gl.POINTS, 0, nodeCount);
-    }
 
     requestAnimationFrame(draw);
   }
