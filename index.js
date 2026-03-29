@@ -34,6 +34,21 @@
     is_river_mouth: f.properties.is_river_mouth,
   }));
 
+  // --- 隣接グラフ構築 (start_node/end_node) ---
+  const nodeToSegs = {};  // nodeId -> [segIndex, ...]
+  const nodeDegree = {};  // nodeId -> degree
+  for (let i = 0; i < segments.length; i++) {
+    const p = segments[i].properties;
+    const sn = p.start_node;
+    const en = p.end_node;
+    if (sn) { (nodeToSegs[sn] = nodeToSegs[sn] || []).push(i); nodeDegree[sn] = (nodeDegree[sn] || 0) + 1; }
+    if (en) { (nodeToSegs[en] = nodeToSegs[en] || []).push(i); nodeDegree[en] = (nodeDegree[en] || 0) + 1; }
+  }
+
+  // ハイライト対象セグメントのインデックス集合
+  let highlightSet = new Set();
+  let hoveredRiverName = "";
+
   // --- データ前処理: 全データの範囲を統合して正規化 ---
   let lonMin = Infinity, lonMax = -Infinity;
   let latMin = Infinity, latMax = -Infinity;
@@ -154,15 +169,21 @@
   function buildRiverGeometry() {
     const verts = [];
     const colors = [];
-    for (const seg of segments) {
+    for (let si = 0; si < segments.length; si++) {
+      const seg = segments[si];
+      const hl = highlightSet.has(si);
       const coords = seg.coordinates;
       for (let i = 0; i < coords.length - 1; i++) {
         const p0 = normalize(coords[i][0], coords[i][1], coords[i][2]);
         const p1 = normalize(coords[i + 1][0], coords[i + 1][1], coords[i + 1][2]);
-        const c0 = elevColor(coords[i][2]);
-        const c1 = elevColor(coords[i + 1][2]);
+        if (hl) {
+          colors.push(1, 1, 1, 1, 1, 1);
+        } else {
+          const c0 = elevColor(coords[i][2]);
+          const c1 = elevColor(coords[i + 1][2]);
+          colors.push(...c0, ...c1);
+        }
         verts.push(...p0, ...p1);
-        colors.push(...c0, ...c1);
       }
     }
     lineVertCount = verts.length / 3;
@@ -289,8 +310,69 @@
     return mat4Mult(proj, view);
   }
 
+  // --- 3D→スクリーン投影 ---
+  function projectToScreen(wx, wy, wz, mvp) {
+    const x = mvp[0]*wx + mvp[4]*wy + mvp[8]*wz + mvp[12];
+    const y = mvp[1]*wx + mvp[5]*wy + mvp[9]*wz + mvp[13];
+    const w = mvp[3]*wx + mvp[7]*wy + mvp[11]*wz + mvp[15];
+    if (w <= 0) return null;
+    const ndcX = x / w, ndcY = y / w;
+    return [(ndcX * 0.5 + 0.5) * canvas.width, (1 - (ndcY * 0.5 + 0.5)) * canvas.height];
+  }
+
+  // 点からスクリーン空間の線分への距離
+  function distPointToSegment2D(px, py, ax, ay, bx, by) {
+    const dx = bx - ax, dy = by - ay;
+    const lenSq = dx * dx + dy * dy;
+    if (lenSq === 0) return Math.sqrt((px - ax) ** 2 + (py - ay) ** 2);
+    let t = ((px - ax) * dx + (py - ay) * dy) / lenSq;
+    t = Math.max(0, Math.min(1, t));
+    const cx = ax + t * dx, cy = ay + t * dy;
+    return Math.sqrt((px - cx) ** 2 + (py - cy) ** 2);
+  }
+
+  // 最近傍セグメント検索
+  function findNearestSegment(mx, my, mvp) {
+    let bestDist = Infinity, bestIdx = -1;
+    for (let i = 0; i < segments.length; i++) {
+      const coords = segments[i].coordinates;
+      for (let j = 0; j < coords.length - 1; j++) {
+        const p0 = normalize(coords[j][0], coords[j][1], coords[j][2]);
+        const p1 = normalize(coords[j + 1][0], coords[j + 1][1], coords[j + 1][2]);
+        const s0 = projectToScreen(p0[0], p0[1], p0[2], mvp);
+        const s1 = projectToScreen(p1[0], p1[1], p1[2], mvp);
+        if (!s0 || !s1) continue;
+        const d = distPointToSegment2D(mx, my, s0[0], s0[1], s1[0], s1[1]);
+        if (d < bestDist) { bestDist = d; bestIdx = i; }
+      }
+    }
+    return bestDist < 15 ? bestIdx : -1; // 15px 閾値
+  }
+
+  // 分岐・合流点 (degree!=2) までフラッドフィル
+  function floodFillSegments(startIdx) {
+    const result = new Set([startIdx]);
+    const queue = [startIdx];
+    while (queue.length > 0) {
+      const idx = queue.pop();
+      const p = segments[idx].properties;
+      for (const nodeId of [p.start_node, p.end_node]) {
+        if (!nodeId || nodeDegree[nodeId] !== 2) continue;
+        for (const neighbor of (nodeToSegs[nodeId] || [])) {
+          if (!result.has(neighbor)) {
+            result.add(neighbor);
+            queue.push(neighbor);
+          }
+        }
+      }
+    }
+    return result;
+  }
+
   // --- マウス操作 ---
   let dragging = false, rightDrag = false, lastX, lastY;
+  let mouseX = 0, mouseY = 0;
+  const tooltip = document.getElementById("tooltip");
 
   canvas.addEventListener("mousedown", (e) => {
     if (e.button === 2) { rightDrag = true; } else { dragging = true; }
@@ -308,8 +390,37 @@
       panY -= dy * 0.002 * zoom;
     }
     lastX = e.clientX; lastY = e.clientY;
+    mouseX = e.clientX; mouseY = e.clientY;
+
+    // ホバー判定（ドラッグ中はスキップ）
+    if (!dragging && !rightDrag) {
+      const mvp = getMVP();
+      const idx = findNearestSegment(mouseX, mouseY, mvp);
+      if (idx >= 0) {
+        highlightSet = floodFillSegments(idx);
+        hoveredRiverName = segments[idx].properties.river_name || "";
+        tooltip.style.display = "block";
+        tooltip.style.left = (mouseX + 12) + "px";
+        tooltip.style.top = (mouseY + 12) + "px";
+        tooltip.textContent = hoveredRiverName || "(名称不明)";
+        highlightDirty = true;
+      } else if (highlightSet.size > 0) {
+        highlightSet = new Set();
+        hoveredRiverName = "";
+        tooltip.style.display = "none";
+        highlightDirty = true;
+      }
+    }
   });
   canvas.addEventListener("mouseup", () => { dragging = false; rightDrag = false; });
+  canvas.addEventListener("mouseleave", () => {
+    if (highlightSet.size > 0) {
+      highlightSet = new Set();
+      hoveredRiverName = "";
+      tooltip.style.display = "none";
+      highlightDirty = true;
+    }
+  });
   canvas.addEventListener("contextmenu", (e) => e.preventDefault());
   canvas.addEventListener("wheel", (e) => {
     zoom *= e.deltaY > 0 ? 1.1 : 0.9;
@@ -355,7 +466,15 @@
   gl.enable(gl.DEPTH_TEST);
   gl.clearColor(0.08, 0.08, 0.12, 1);
 
+  let highlightDirty = false;
+
   function draw() {
+    // ハイライト変更時のみ河川カラーバッファを更新
+    if (highlightDirty) {
+      buildRiverGeometry();
+      highlightDirty = false;
+    }
+
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     const mvp = getMVP();
     gl.uniformMatrix4fv(uMVP, false, mvp);

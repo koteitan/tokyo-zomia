@@ -129,6 +129,73 @@
 | RS-309 | spec-preview.md が新ファイル名を記載する | `index.html`, `index.js`, `style.css`, `.geojson.gz`, `DecompressionStream` を含む | Python で docs/spec-preview.md を読み込み文字列検索 |
 | RS-310 | spec-preview.md が旧ファイル名を記載しない | `preview.html`, `preview.js` を含まない | Python で docs/spec-preview.md を読み込み文字列検索 |
 
+## 13. マウスホバー・ハイライト — GeoJSON properties
+
+| テストID | テスト内容 | 期待結果 | 確認方法 |
+|----------|-----------|---------|---------|
+| HV-101 | 全 Feature に start_node プロパティが存在する | rivers.geojson.gz の全 Feature に start_node が存在 | Python で gzip 解凍して全 Feature を検証 |
+| HV-102 | 全 Feature に end_node プロパティが存在する | rivers.geojson.gz の全 Feature に end_node が存在 | Python で gzip 解凍して全 Feature を検証 |
+| HV-103 | 全 Feature に river_name プロパティが存在する | rivers.geojson.gz の全 Feature に river_name が存在 | Python で gzip 解凍して全 Feature を検証 |
+| HV-104 | start_node が空でない Feature が存在する | 1件以上の Feature で start_node が非空 | Python で空でない start_node の件数をカウント |
+| HV-105 | end_node が空でない Feature が存在する | 1件以上の Feature で end_node が非空 | Python で空でない end_node の件数をカウント |
+
+## 14. マウスホバー・ハイライト — 隣接グラフ構築
+
+| テストID | テスト内容 | 期待結果 | 確認方法 |
+|----------|-----------|---------|---------|
+| HV-201 | start_node/end_node からノード集合が構築できる | ノード数が1以上 | Python で隣接マップを構築しノード数を検証 |
+| HV-202 | セグメント数が1以上 | Feature 数が1以上 | Python で Feature 数を検証 |
+| HV-203 | 大多数のセグメントが start_node と end_node の両方を持つ | 90%以上のセグメントが両方持つ | Python で両方持つセグメントの割合を検証 |
+| HV-204 | 隣接マップの整合性 | nodeToSegs[node] の各セグメントがそのノードを start/end に持つ | Python で全ノードについて整合性を検証 |
+
+## 15. マウスホバー・ハイライト — ノード次数
+
+| テストID | テスト内容 | 期待結果 | 確認方法 |
+|----------|-----------|---------|---------|
+| HV-301 | degree==1（源流・河口）のノードが存在する | 1件以上 | Python でノード次数を計算し degree==1 のノード数を検証 |
+| HV-302 | degree==2（通過点）のノードが存在する | 1件以上 | Python でノード次数を計算し degree==2 のノード数を検証 |
+| HV-303 | degree>=3（分岐・合流）のノードが存在する | 1件以上 | Python でノード次数を計算し degree>=3 のノード数を検証 |
+| HV-304 | degree 分布が妥当 | 端点数 < 通過点数 | Python で degree==1 と degree==2 の件数を比較 |
+| HV-305 | 最大次数が妥当な範囲 | 最大次数 <= 20 | Python で最大次数を検証 |
+
+## 16. マウスホバー・ハイライト — フラッドフィル
+
+| テストID | テスト内容 | 期待結果 | 確認方法 |
+|----------|-----------|---------|---------|
+| HV-401 | フラッドフィルが有限集合を返す | 結果セグメント数が1以上かつ全体以下 | Python で仕様通りのフラッドフィルを実装し実行 |
+| HV-402 | フラッドフィル結果に開始セグメントが含まれる | 開始インデックスが結果に含まれる | Python で結果集合に開始セグメントが含まれるか検証 |
+| HV-403 | degree==2 のノードの先の隣接セグメントが全て含まれる | 境界条件が正しい | Python でフラッドフィル結果の境界を検証 |
+| HV-404 | 複数サンプルで一貫して妥当な結果 | 20サンプル全て妥当 | Python でランダム20件のフラッドフィルを検証 |
+
+## 17. マウスホバー・ハイライト — index.js 実装
+
+| テストID | テスト内容 | 期待結果 | 確認方法 |
+|----------|-----------|---------|---------|
+| HV-501 | nodeToSegs 隣接マップが構築される | `nodeToSegs` が JS に含まれる | Python で index.js を読み込み文字列検索 |
+| HV-502 | nodeDegree 次数が計算される | `nodeDegree` が JS に含まれる | Python で index.js を読み込み文字列検索 |
+| HV-503 | floodFillSegments 関数が存在する | `floodFillSegments` が JS に含まれる | Python で index.js を読み込み文字列検索 |
+| HV-504 | findNearestSegment 関数が存在する | `findNearestSegment` が JS に含まれる | Python で index.js を読み込み文字列検索 |
+| HV-505 | projectToScreen 関数が存在する | `projectToScreen` が JS に含まれる | Python で index.js を読み込み文字列検索 |
+| HV-506 | distPointToSegment2D 関数が存在する | `distPointToSegment2D` が JS に含まれる | Python で index.js を読み込み文字列検索 |
+| HV-507 | 15px 閾値が設定されている | `< 15` が JS に含まれる | Python で index.js を読み込み文字列検索 |
+| HV-508 | degree==2 判定による探索停止 | `!== 2` または `!= 2` が JS に含まれる | Python で index.js を読み込み文字列検索 |
+| HV-509 | highlightSet によるハイライト管理 | `highlightSet` が JS に含まれる | Python で index.js を読み込み文字列検索 |
+| HV-510 | tooltip 要素の使用 | `tooltip` が JS に含まれる | Python で index.js を読み込み文字列検索 |
+| HV-511 | 河川名が空の場合「(名称不明)」を表示 | `(名称不明)` が JS に含まれる | Python で index.js を読み込み文字列検索 |
+| HV-512 | ドラッグ中はホバーをスキップ | `dragging` と `rightDrag` の判定が JS に含まれる | Python で index.js を読み込み文字列検索 |
+| HV-513 | mouseleave でハイライト解除 | `mouseleave` が JS に含まれる | Python で index.js を読み込み文字列検索 |
+
+## 18. マウスホバー・ハイライト — 仕様書記載
+
+| テストID | テスト内容 | 期待結果 | 確認方法 |
+|----------|-----------|---------|---------|
+| HV-601 | spec-preview.md にホバーセクションが存在 | 「マウスホバー」の記載 | Python で docs/spec-preview.md を読み込み文字列検索 |
+| HV-602 | spec-preview.md に隣接グラフの記載 | 「隣接」の記載 | Python で docs/spec-preview.md を読み込み文字列検索 |
+| HV-603 | spec-preview.md にフラッドフィルの記載 | 「フラッドフィル」の記載 | Python で docs/spec-preview.md を読み込み文字列検索 |
+| HV-604 | spec-preview.md に degree!=2 の停止条件 | 「degree!=2」または「degree==2」の記載 | Python で docs/spec-preview.md を読み込み文字列検索 |
+| HV-605 | spec-preview.md に 15px 閾値の記載 | 「15px」の記載 | Python で docs/spec-preview.md を読み込み文字列検索 |
+| HV-606 | spec-preview.md にツールチップの記載 | 「ツールチップ」の記載 | Python で docs/spec-preview.md を読み込み文字列検索 |
+
 ---
 
 ## テスト環境
@@ -143,5 +210,5 @@
 
 1. `download.py` を実行し、標準出力をファイルにキャプチャする
 2. ホワイトボックステスト (`test/white/test_restructure.py`) を実行する
-3. ブラックボックステスト (`test/blackbox/test_blackbox.py`) を実行する
+3. ブラックボックステスト (`test/blackbox/test_blackbox.py`, `test/blackbox/test_hover.py`) を実行する
 4. 結果を docs/test-report.md に記録する

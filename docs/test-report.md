@@ -2,11 +2,11 @@
 
 - 実施日: 2026-03-29
 - テスト仕様: docs/test-spec.md
-- テスト対象: ファイル構成変更・gzip圧縮対応 + データ品質
+- テスト対象: ファイル構成変更・gzip圧縮対応 + データ品質 + マウスホバー・ハイライト機能
 - 出力データ: data/rivers.geojson.gz, data/coastline.geojson.gz
 - テストスクリプト:
   - ホワイトボックステスト: test/white/test_restructure.py
-  - ブラックボックステスト: test/blackbox/test_blackbox.py
+  - ブラックボックステスト: test/blackbox/test_blackbox.py, test/blackbox/test_hover.py
 
 ## 結果サマリー
 
@@ -27,14 +27,22 @@
 | SKIP | 1 (RS-106) |
 | **合計** | **50** |
 
+### ブラックボックステスト — ホバー機能 (test/blackbox/test_hover.py)
+
+| 結果 | 件数 |
+|------|------|
+| PASS | 37 |
+| FAIL | 0 |
+| **合計** | **37** |
+
 ### 総合
 
 | 結果 | 件数 |
 |------|------|
-| PASS | 83 |
+| PASS | 120 |
 | FAIL | 0 |
 | SKIP | 1 |
-| **合計** | **83** |
+| **合計** | **120** |
 
 **全項目合格**
 
@@ -146,3 +154,72 @@
 |----------|------|------|
 | DL-901 | PASS | fetch_url: max_retries=3, retry_delay=5 実装確認 |
 | DL-902 | PASS | 日本語河川名を含む Feature が存在 (cp932 エンコーディング正常動作) |
+
+---
+
+## 13. マウスホバー・ハイライト — GeoJSON properties
+
+| テストID | 結果 | 詳細 |
+|----------|------|------|
+| HV-101 | PASS | 全8471 Feature に start_node が存在 |
+| HV-102 | PASS | 全8471 Feature に end_node が存在 |
+| HV-103 | PASS | 全8471 Feature に river_name が存在 |
+| HV-104 | PASS | 空でない start_node: 8471/8471 |
+| HV-105 | PASS | 空でない end_node: 8471/8471 |
+
+## 14. マウスホバー・ハイライト — 隣接グラフ構築
+
+| テストID | 結果 | 詳細 |
+|----------|------|------|
+| HV-201 | PASS | ノード数: 7704 |
+| HV-202 | PASS | セグメント数: 8471 |
+| HV-203 | PASS | start_node と end_node 両方あるセグメント: 8471/8471 (100%) |
+| HV-204 | PASS | 隣接マップの整合性: 全ノード↔セグメント対応が正しい |
+
+## 15. マウスホバー・ハイライト — ノード次数
+
+| テストID | 結果 | 詳細 |
+|----------|------|------|
+| HV-301 | PASS | degree==1（端点）: 1982ノード |
+| HV-302 | PASS | degree==2（通過点）: 2326ノード |
+| HV-303 | PASS | degree>=3（分岐・合流）: 3396ノード |
+| HV-304 | PASS | degree 分布が妥当 (1982 < 2326) |
+| HV-305 | PASS | 最大次数: 5 |
+
+## 16. マウスホバー・ハイライト — フラッドフィル
+
+| テストID | 結果 | 詳細 |
+|----------|------|------|
+| HV-401 | PASS | フラッドフィルが有限集合を返す（セグメント0から: 2件） |
+| HV-402 | PASS | フラッドフィル結果に開始セグメントが含まれる |
+| HV-403 | PASS | boundary: degree==2 のノードの先は全て結果に含まれる |
+| HV-404 | PASS | 20サンプルのフラッドフィルが全て妥当 |
+
+## 17. マウスホバー・ハイライト — index.js 実装
+
+| テストID | 結果 | 詳細 |
+|----------|------|------|
+| HV-501 | PASS | nodeToSegs 隣接マップ構築コード確認 |
+| HV-502 | PASS | nodeDegree 次数計算コード確認 |
+| HV-503 | PASS | floodFillSegments 関数確認 |
+| HV-504 | PASS | findNearestSegment 関数確認 |
+| HV-505 | PASS | projectToScreen 関数確認 |
+| HV-506 | PASS | distPointToSegment2D 関数確認 |
+| HV-507 | PASS | 15px 閾値設定確認 |
+| HV-508 | PASS | degree==2 判定による探索停止確認 |
+| HV-509 | PASS | highlightSet によるハイライト管理確認 |
+| HV-510 | PASS | tooltip 要素の使用確認 |
+| HV-511 | PASS | 「(名称不明)」フォールバック表示確認 |
+| HV-512 | PASS | ドラッグ中はホバーをスキップ確認 |
+| HV-513 | PASS | mouseleave でハイライト解除確認 |
+
+## 18. マウスホバー・ハイライト — 仕様書記載
+
+| テストID | 結果 | 詳細 |
+|----------|------|------|
+| HV-601 | PASS | spec-preview.md にホバーセクション記載あり |
+| HV-602 | PASS | spec-preview.md に隣接グラフ記載あり |
+| HV-603 | PASS | spec-preview.md にフラッドフィル記載あり |
+| HV-604 | PASS | spec-preview.md に degree!=2 停止条件記載あり |
+| HV-605 | PASS | spec-preview.md に 15px 閾値記載あり |
+| HV-606 | PASS | spec-preview.md にツールチップ記載あり |
