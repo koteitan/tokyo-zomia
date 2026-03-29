@@ -373,6 +373,74 @@ def step3_filter_rivers(all_streams, all_nodes, target_river_names):
         if end_node:
             node_degree[end_node] += 1
 
+    # 空間ノード統合: 地理的に近い端点を同一ノードとして扱う
+    # W05データは都道府県境界でノードIDが不連続なため、Union-Findで統合
+    BRIDGE_THRESHOLD = 0.0005  # 約56m
+    BRIDGE_GRID = 0.01
+
+    # Union-Find
+    uf_parent = {}
+
+    def uf_find(x):
+        while uf_parent.get(x, x) != x:
+            uf_parent[x] = uf_parent.get(uf_parent[x], uf_parent[x])
+            x = uf_parent[x]
+        return x
+
+    def uf_union(a, b):
+        ra, rb = uf_find(a), uf_find(b)
+        if ra != rb:
+            uf_parent[ra] = rb
+
+    # 空間グリッドで近接ノードを検出・統合
+    all_nodes_list = [(nid, node_coords[nid]) for nid in node_coords]
+    spatial_grid = defaultdict(list)
+    for nid, (lat, lon) in all_nodes_list:
+        cell = (round(lat / BRIDGE_GRID), round(lon / BRIDGE_GRID))
+        spatial_grid[cell].append((nid, lat, lon))
+
+    merge_count = 0
+    for nid, (lat, lon) in all_nodes_list:
+        cell_y, cell_x = round(lat / BRIDGE_GRID), round(lon / BRIDGE_GRID)
+        for dy in (-1, 0, 1):
+            for dx in (-1, 0, 1):
+                for other_nid, olat, olon in spatial_grid.get((cell_y + dy, cell_x + dx), ()):
+                    if other_nid <= nid:
+                        continue
+                    dist = math.sqrt((lat - olat) ** 2 + (lon - olon) ** 2)
+                    if dist < BRIDGE_THRESHOLD:
+                        if uf_find(nid) != uf_find(other_nid):
+                            uf_union(nid, other_nid)
+                            merge_count += 1
+
+    # グラフを正規化ノードIDで再構築
+    graph = defaultdict(list)
+    for idx, (d, shape, start_node, end_node) in stream_by_idx.items():
+        canon_sn = uf_find(start_node) if start_node else ""
+        canon_en = uf_find(end_node) if end_node else ""
+        graph[canon_sn].append(idx)
+        graph[canon_en].append(idx)
+        stream_by_idx[idx] = (d, shape, canon_sn, canon_en)
+
+    # ノード座標・次数を再構築
+    node_coords = {}
+    for idx, (d, shape, start_node, end_node) in stream_by_idx.items():
+        pts = shape.points
+        if pts:
+            if start_node:
+                node_coords.setdefault(start_node, (pts[0][1], pts[0][0]))
+            if end_node:
+                node_coords.setdefault(end_node, (pts[-1][1], pts[-1][0]))
+
+    node_degree = defaultdict(int)
+    for idx, (d, shape, start_node, end_node) in stream_by_idx.items():
+        if start_node:
+            node_degree[start_node] += 1
+        if end_node:
+            node_degree[end_node] += 1
+
+    print(f"  空間ノード統合: {merge_count}組のノードを統合", flush=True)
+
     # 河口候補: 次数1のノードでbbox内かつ低標高
     mouth_candidates = set()
     for node_id, coord in node_coords.items():
@@ -409,10 +477,18 @@ def step3_filter_rivers(all_streams, all_nodes, target_river_names):
         reach_degree[en] += 1
 
     # 源流ノードの標高確認: 高源流(>=300m)を特定
+    # DEM標高を使用（出力と一致させるため）、DEMが取得不能ならW05_011にフォールバック
     high_sources = set()
     for node_id in visited:
         if node_id not in mouth_candidates and reach_degree[node_id] == 1:
-            elev = get_node_elev(node_id)
+            coord = node_coords.get(node_id)
+            if coord:
+                lat, lon = coord
+                elev = get_elevation(lat, lon)
+                if elev is None:
+                    elev = get_node_elev(node_id)
+            else:
+                elev = get_node_elev(node_id)
             if elev is not None and elev >= MIN_SOURCE_ELEVATION:
                 high_sources.add(node_id)
 
@@ -440,6 +516,31 @@ def step3_filter_rivers(all_streams, all_nodes, target_river_names):
         if to_remove:
             valid -= to_remove
             changed = True
+
+    # 高源流からの逆BFS: 300m以上の源流から到達可能な区間のみ保持
+    # (仕様: 300m以上の源流から河口までのパス上の区間のみ)
+    valid_graph = defaultdict(list)
+    for idx in valid:
+        d, shape, sn, en = stream_by_idx[idx]
+        valid_graph[sn].append(idx)
+        valid_graph[en].append(idx)
+
+    reachable_from_source = set()
+    src_visited = set(high_sources)
+    src_queue = list(high_sources)
+    while src_queue:
+        node_id = src_queue.pop(0)
+        for idx in valid_graph.get(node_id, []):
+            if idx in reachable_from_source:
+                continue
+            reachable_from_source.add(idx)
+            d, shape, sn, en = stream_by_idx[idx]
+            other = en if sn == node_id else sn
+            if other and other not in src_visited:
+                src_visited.add(other)
+                src_queue.append(other)
+
+    valid &= reachable_from_source
 
     filtered_streams = [stream_by_idx[idx] for idx in valid]
     print(f"  フィルタ後: {len(filtered_streams)}区間", flush=True)

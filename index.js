@@ -299,7 +299,7 @@
   }
 
   // --- カメラ ---
-  let rotX = -0.6, rotY = 0.4, zoom = 2.5, panX = 0, panY = 0;
+  let rotX = -Math.PI / 2, rotY = 0, zoom = 2.5, panX = 0, panY = 0;
 
   function getMVP() {
     const aspect = canvas.width / canvas.height;

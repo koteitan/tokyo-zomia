@@ -60,7 +60,12 @@ flowchart TD
     S2["Step 2: W05 河川データのダウンロード"]
     S2 --> S2a["対象8都県の\nStream.shp + RiverNode.shp\nをダウンロード"]
     S2a --> S2b["河川名で水系域コードを照合"]
-    S2b --> S3
+    S2b --> S2c
+
+    S2c["Step 2.5: 県境ノード統合 (Union-Find)"]
+    S2c --> S2d["空間グリッド(0.01°セル)で\n近接ノードを検索"]
+    S2d --> S2e["距離 < 0.0005° のノード対を\nUnion-Find で統合"]
+    S2e --> S3
 
     S3["Step 3: 対象河川のフィルタリング"]
     S3 --> S3a["bbox内の河口ノードを特定"]

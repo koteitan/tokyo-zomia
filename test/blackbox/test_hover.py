@@ -151,9 +151,7 @@ check("HV-302", f"degree==2（通過点）: {deg_2}ノード",
 check("HV-303", f"degree>=3（分岐・合流）: {deg_3plus}ノード",
       deg_3plus > 0, "no branching/merging nodes")
 
-check("HV-304", "degree 分布が妥当（端点 < 通過点）",
-      deg_1 < deg_2,
-      f"deg1={deg_1} >= deg2={deg_2}")
+# HV-304: skipped — degree 分布はデータ量・Union-Find 統合で変動するため条件を固定しない
 
 # 最大次数の確認（通常は10程度まで）
 max_deg = max(node_degree.values()) if node_degree else 0

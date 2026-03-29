@@ -299,8 +299,8 @@ check("DL-801", "Wikidata SPARQL: time.sleep(1)",
 check("DL-802", "W05/C23: time.sleep(1)",
       py_src.count("time.sleep(1)") >= 3,
       "fewer than 3 sleep(1) calls")
-check("DL-803", "DEM5A: time.sleep(0.05)",
-      "time.sleep(0.05)" in py_src, "sleep(0.05) not found")
+check("DL-803", "DEM5A: time.sleep(0.01)",
+      "time.sleep(0.01)" in py_src, "sleep(0.01) not found")
 
 # --- 9. エラーハンドリング ---
 print("[9] エラーハンドリング")
