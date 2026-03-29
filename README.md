@@ -19,12 +19,10 @@
 
 本アプリが使用するデータは以下の出典に基づいています。
 
-- 河川データ: 国土交通省「[国土数値情報（河川データ）](https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-W05.html)」を加工して作成
-- 海岸線データ: 国土交通省「[国土数値情報（海岸線データ）](https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-C23.html)」を加工して作成
-- 標高データ: [国土地理院](https://www.gsi.go.jp/)「数値標高モデル（DEM5A）」を加工して作成
-- 水系情報: [Wikidata](https://www.wikidata.org/) を利用
-
-各データは「[公共データ利用規約（第1.0版）](https://www.digital.go.jp/resources/open_data/public_data_license_v1.0)」に基づき利用しています。
+- 河川データ: 国土交通省「[国土数値情報（河川データ）](https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-W05.html)」
+- 海岸線データ: 国土交通省「[国土数値情報（海岸線データ）](https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-C23.html)」
+- 標高データ: [国土地理院](https://www.gsi.go.jp/)「数値標高モデル（DEM5A）」
+- 水系情報: [Wikidata](https://www.wikidata.org/)
 
 ## 開発者向け
 
