@@ -258,6 +258,47 @@
 
   rebuildAll();
 
+  // --- カラーバー ---
+  (function buildColorBar() {
+    const container = document.getElementById("colorbar");
+    if (!container) return;
+    const steps = 64;
+    const colors = [];
+    for (let i = 0; i < steps; i++) {
+      const t = i / (steps - 1);
+      let r, g, b;
+      if (t < 0.33) {
+        const s = t / 0.33;
+        r = 0; g = s; b = 1 - s;
+      } else if (t < 0.66) {
+        const s = (t - 0.33) / 0.33;
+        r = s; g = 1; b = 0;
+      } else {
+        const s = (t - 0.66) / 0.34;
+        r = 1; g = 1 - s; b = 0;
+      }
+      colors.push(`rgb(${r * 255 | 0},${g * 255 | 0},${b * 255 | 0})`);
+    }
+    const grad = colors.map((c, i) => `${c} ${(i / (steps - 1) * 100).toFixed(1)}%`).join(",");
+    const bar = document.createElement("div");
+    bar.className = "bar";
+    bar.style.background = `linear-gradient(to right,${grad})`;
+    container.appendChild(bar);
+
+    const ticks = document.createElement("div");
+    ticks.className = "ticks";
+    const range = elevMax - elevMin || 1;
+    for (const e of [0, 300, 500, 1000, 1500, 2000, 2500]) {
+      if (e < elevMin || e > elevMax) continue;
+      const pct = ((e - elevMin) / range) * 100;
+      const span = document.createElement("span");
+      span.style.left = pct + "%";
+      span.textContent = e + "m";
+      ticks.appendChild(span);
+    }
+    container.appendChild(ticks);
+  })();
+
   // --- 行列ユーティリティ ---
   function mat4Ident() {
     return new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]);
@@ -299,14 +340,16 @@
   }
 
   // --- カメラ ---
-  let rotX = Math.PI / 2, rotY = 0, zoom = 2.5, panX = 0, panY = 0;
+  let rotX = Math.PI / 2, rotY = 0, zoom = 2.5;
+  let targetX = 0, targetZ = 0; // 回転中心（海面 y=0 上のワールド座標）
 
   function getMVP() {
     const aspect = canvas.width / canvas.height;
     const proj = mat4Perspective(Math.PI / 4, aspect, 0.01, 100);
-    let view = mat4Translate(panX, panY, -zoom);
+    let view = mat4Translate(0, 0, -zoom);
     view = mat4Mult(view, mat4RotX(rotX));
     view = mat4Mult(view, mat4RotY(rotY));
+    view = mat4Mult(view, mat4Translate(-targetX, 0, -targetZ));
     return mat4Mult(proj, view);
   }
 
@@ -386,8 +429,13 @@
       rotX = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, rotX));
     }
     if (rightDrag) {
-      panX += dx * 0.002 * zoom;
-      panY -= dy * 0.002 * zoom;
+      const s = 0.002 * zoom;
+      const rX = Math.cos(rotY), rZ = -Math.sin(rotY);
+      const fX = -Math.sin(rotY), fZ = -Math.cos(rotY);
+      targetX -= dx * s * rX;
+      targetZ -= dx * s * rZ;
+      targetX += dy * s * fX;
+      targetZ += dy * s * fZ;
     }
     lastX = e.clientX; lastY = e.clientY;
     mouseX = e.clientX; mouseY = e.clientY;
@@ -500,6 +548,7 @@
     gl.bindBuffer(gl.ARRAY_BUFFER, lineColorBuf);
     gl.vertexAttribPointer(aColor, 3, gl.FLOAT, false, 0, 0);
     gl.drawArrays(gl.LINES, 0, lineVertCount);
+
 
 
     requestAnimationFrame(draw);
